@@ -19,10 +19,16 @@ const visual_recognition = watson.visual_recognition({
     version_date: '2016-05-20'
 });
 
+const remedyData = {
+    "Angular Leaf Spot or Black Arm": ["Pesticide I", "Pesticide II", "Pesticide III", "Pesticide IV"],
+    "Grey Midlew": ["Pesticide II", "Pesticide V"]
+};
+
 var someData = {
     name: false,
     location: false
 };
+
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, () => {
@@ -62,6 +68,7 @@ var bot = new builder.UniversalBot(connector, [
                 session, [
                     builder.CardAction.imBack(session, "Disease Classification", "Identify the disease"),
                     builder.CardAction.imBack(session, "Weather Data", "Get weather data"),
+                    builder.CardAction.imBack(session, "Disease Classification Dev", "Identify the disease (dev)"),
                     builder.CardAction.imBack(session, "Cancel", "Cancel")
                 ]
             ));
@@ -114,7 +121,7 @@ bot.dialog('getImage', [
             request(attachment.contentUrl, function (error, response, body) {
                 console.log('error:', error); // Print the error if one occurred
                 console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
-                cloudinary.uploader.upload('./images/ex.jpg', (result) => {
+                cloudinary.uploader.upload('./static/images/ex.jpg', (result) => {
                     // console.log(result)
                     runClassifier(result.url, session);
                     // session.sendTyping();
@@ -132,6 +139,22 @@ bot.dialog('getImage', [
         matches: /^cancel$/i
     });
 
+bot.dialog('getImageDev', [
+    (session, response) => {
+        builder.Prompts.text(session, "Enter the URL")
+    }, (session, results, next) => {
+        runClassifier(results.response, session);
+        session.endDialog("Please wait");
+    }
+])
+    .triggerAction({
+        matches: /^Disease Classification Dev$/i
+    })
+    .cancelAction('cancelAction', 'Ok, cancelling..', {
+        matches: /^cancel$/i
+    });
+
+
 runClassifier = (url, session) => {
     var options = {
         method: 'GET',
@@ -148,10 +171,10 @@ runClassifier = (url, session) => {
 
     request(options, (error, response, body) => {
         if (error) throw new Error(error);
-        // console.log(body)
+        console.log(body)
         var js = JSON.parse(body)
         // body.images[0].sort();
-        var classes = js.images[0].classifiers[0].classes;
+        var classes = js.images[0].classifiers[0].classes != undefined ? js.images[0].classifiers[0].classes : ["No record found"];
         classes.sort();
         // console.log(classes[0]);
         session.beginDialog('dispResult', classes[0]);
@@ -161,7 +184,16 @@ runClassifier = (url, session) => {
 bot.dialog('dispResult', [
     (session, args) => {
         console.log(args);
-        session.endDialog("The disease is classified as " + args.class);
+        if (args.class != undefined) {
+            console.log(remedyData[args.class])
+            let ele = '';
+            remedyData[args.class].forEach(element => {
+                ele += element + '<br />'
+            });
+            session.send("Your crop more likely has " + args.class + '<br /><br />Treat them using:<br />' + ele)
+        } else {
+            session.send("Try uploading another image")
+        }
     }
 ])
 
