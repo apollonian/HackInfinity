@@ -1,7 +1,5 @@
 var builder = require('botbuilder');
 var restify = require('restify');
-var watson = require('watson-developer-cloud');
-var fs = require('fs');
 
 var fetch = require('node-fetch');
 var request = require('request');
@@ -11,12 +9,6 @@ cloudinary.config({
     cloud_name: 'apollonian',
     api_key: '481274298115531',
     api_secret: 'TBmxAfjX-7toMDySi8UucSz5z4s'
-});
-
-const visual_recognition = watson.visual_recognition({
-    api_key: 'a998c221a94ed21a8c6d5aadf86dfa1e68ffed7b',
-    version: 'v3',
-    version_date: '2016-05-20'
 });
 
 const remedyData = {
@@ -52,10 +44,6 @@ var bot = new builder.UniversalBot(connector, [
             someData.name = true;
             session.say(`Hello ${name}`);
         }
-        // }, (session, result, next) => {
-
-        // session.beginDialog('getImage');
-        // }, (session) => {
         var msg = new builder.Message(session)
             .text("How can I help you today?<br/>Select your choice.")
             .suggestedActions(
@@ -73,6 +61,7 @@ var bot = new builder.UniversalBot(connector, [
     }
 ]);
 
+// Hande the name input intent
 bot.dialog('getName', [
     (session, args, next) => {
         if (someData.name) {
@@ -89,6 +78,8 @@ bot.dialog('getName', [
             session.endDialogWithResult({ response: name })
     }
 ]);
+
+// Handle for the location intent, and weather fetching
 bot.dialog('getLocation', [
     (session) => {
         if (someData.location) {
@@ -125,6 +116,7 @@ bot.dialog('getLocation', [
     }
 ]);
 
+// Handle the image input intent => takes a Image as a blob file
 bot.dialog('getImage', [
     (session, response) => {
         session.say("Send a photo of your crop");
@@ -156,6 +148,7 @@ bot.dialog('getImage', [
         matches: /^cancel$/i
     });
 
+// Handle the image input (Developer) intent => takes a URL as text input
 bot.dialog('getImageDev', [
     (session, response) => {
         builder.Prompts.text(session, "Enter the URL")
@@ -171,7 +164,7 @@ bot.dialog('getImageDev', [
         matches: /^cancel$/i
     });
 
-
+// Function to run the classifier on the watson API
 runClassifier = (url, session) => {
     var options = {
         method: 'GET',
@@ -191,13 +184,20 @@ runClassifier = (url, session) => {
         console.log(body)
         var js = JSON.parse(body)
         // body.images[0].sort();
-        var classes = js.images[0].classifiers[0].classes != undefined ? js.images[0].classifiers[0].classes : ["No record found"];
-        classes.sort();
-        // console.log(classes[0]);
-        session.beginDialog('dispResult', classes[0]);
+        if(js.images[0].hasOwnProperty('error')){
+            session.say("Error occoured, try again!!")
+        }else if (js.images[0].hasOwnProperty('classifiers') && js.images[0].classifiers.length > 0){
+            var classes = js.images[0].classifiers[0].classes != undefined ? js.images[0].classifiers[0].classes : [];
+            classes.sort();
+            // console.log(classes[0]);
+            session.beginDialog('dispResult', classes[0]);
+        }else {
+            session.say('Error')
+        }
     });
 }
 
+// Intent to display the results of the classifier
 bot.dialog('dispResult', [
     (session, args) => {
         console.log(args);
@@ -212,8 +212,9 @@ bot.dialog('dispResult', [
             session.send("Try uploading another image")
         }
     }
-])
+]);
 
+// Handle the 'weather' intent
 bot.dialog('weather', [
     (session) => {
         // session.sendTyping();
@@ -227,10 +228,19 @@ bot.dialog('weather', [
         
         session.endDialog("Have a nice day");
     }
-]).triggerAction({ matches: [/^Weather Data$/i, /weather data/i] })
+]).triggerAction({ matches: [/^Weather Data$/i, /weather data/i] });
 
+// Handle the 'cancle' intent
 bot.dialog('cancel', [
     (session) => {
-        session.endConversation("Bye bye!!");
+        session.endConversation("Bye bye!! 👋");
     }
-]).triggerAction({ matches: /^Cancel$/i })
+]).triggerAction({ matches: [/^Cancel$/i, /bye$/i]});
+
+// Handle the 'help' intent
+bot.dialog('help',[
+    (session) => {
+        session.send("For more information you can call the toll free helpline number <br />1800 180 1551");
+        session.endDialog("You can visit: 'http://mkisan.gov.in/Default.aspx' website for more information");
+    }
+]).triggerAction({matches: [/^help$/i, /^kcc$/i, /helpline$/i]});
