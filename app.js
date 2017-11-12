@@ -85,8 +85,9 @@ bot.dialog('getImage', [
                 console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
                 cloudinary.uploader.upload('./images/ex.jpg', (result) => {
                     console.log(result)
-                    let resultClassifier = runClassifier(result.url);
-                    console.log(resultClassifier)
+                    runClassifier(result.url);
+                    session.sendTyping();
+                    session.endDialog("Please wait");
                 });
             });
         }
@@ -111,6 +112,11 @@ runClassifier = (url) => {
     request(options, (error, response, body) => {
         if (error) throw new Error(error);
         console.log(body)
-        return (body);
+        var js = JSON.parse(body)
+        // body.images[0].sort();
+        var classes = js.images[0].classifiers[0].classes;
+        classes.sort(); 
+        console.log(classes[0]);
+        return (classes[0]);
     });
 }
