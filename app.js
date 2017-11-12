@@ -48,13 +48,13 @@ var bot = new builder.UniversalBot(connector, [
         }
         session.beginDialog('getLocation');
     }, (session, result, next) => {
-        if(!someData.location){
+        if (!someData.location) {
             const location = session.privateConversationData = result.response
             someData.location = true;
             session.send(`You entered Location: ${location}`);
         }
         // session.beginDialog('getImage');
-    // }, (session) => {
+        // }, (session) => {
         var msg = new builder.Message(session)
             .text("How can I help you today?<br/>Select your choice.")
             .suggestedActions(
@@ -73,9 +73,9 @@ var bot = new builder.UniversalBot(connector, [
 
 bot.dialog('getName', [
     (session, args, next) => {
-        if(someData.name) {
-            session.endDialogWithResult({response: session.privateConversationData.name});
-        }else{
+        if (someData.name) {
+            session.endDialogWithResult({ response: session.privateConversationData.name });
+        } else {
             builder.Prompts.text(session, "What is your name?");
         }
     },
@@ -89,9 +89,9 @@ bot.dialog('getName', [
 ]);
 bot.dialog('getLocation', [
     (session) => {
-        if(someData.location){
-            session.endDialogWithResult({response: session.privateConversationData.location})
-        }else{
+        if (someData.location) {
+            session.endDialogWithResult({ response: session.privateConversationData.location })
+        } else {
             builder.Prompts.text(session, "Please enter your location");
         }
     },
@@ -115,7 +115,7 @@ bot.dialog('getImage', [
                 console.log('error:', error); // Print the error if one occurred
                 console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
                 cloudinary.uploader.upload('./images/ex.jpg', (result) => {
-                    console.log(result)
+                    // console.log(result)
                     runClassifier(result.url, session);
                     // session.sendTyping();
                     session.endDialog("Please wait");
@@ -148,12 +148,12 @@ runClassifier = (url, session) => {
 
     request(options, (error, response, body) => {
         if (error) throw new Error(error);
-        console.log(body)
+        // console.log(body)
         var js = JSON.parse(body)
         // body.images[0].sort();
         var classes = js.images[0].classifiers[0].classes;
         classes.sort();
-        console.log(classes[0]);
+        // console.log(classes[0]);
         session.beginDialog('dispResult', classes[0]);
     });
 }
@@ -165,15 +165,15 @@ bot.dialog('dispResult', [
     }
 ])
 
-bot.dialog('weather',[
+bot.dialog('weather', [
     (session) => {
         // session.sendTyping();
         session.endDialog("Weather data might not be availabe now...");
     }
-]).triggerAction({matches: [/^Weather Data$/i, /weather data/i]})
+]).triggerAction({ matches: [/^Weather Data$/i, /weather data/i] })
 
-bot.dialog('cancel',[
+bot.dialog('cancel', [
     (session) => {
         session.endConversation("Bye bye!!");
     }
-]).triggerAction({matches: /^Cancel$/i})
+]).triggerAction({ matches: /^Cancel$/i })
