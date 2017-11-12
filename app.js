@@ -19,6 +19,10 @@ const visual_recognition = watson.visual_recognition({
     version_date: '2016-05-20'
 });
 
+var someData = {
+    name: false,
+    location: false
+};
 // Setup Restify Server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, () => {
@@ -34,24 +38,46 @@ server.post('/api/messages', connector.listen());
 
 var bot = new builder.UniversalBot(connector, [
     (session) => {
-        session.say("Hi, I'm Agro!!");
+        session.say("Hi, I'm Agro!! 🤖🌾");
         session.beginDialog('getName');
     }, (session, result, next) => {
         if (result.response) {
-            const name = session.privateConversationData = result.response
+            const name = session.privateConversationData.name = result.response
+            someData.name = true;
             session.say(`Hello ${name}`);
         }
         session.beginDialog('getLocation');
     }, (session, result, next) => {
-        const location = session.privateConversationData = result.response
-        session.send(`Location: ${location}`);
-        session.beginDialog('getImage');
+        if(!someData.location){
+            const location = session.privateConversationData = result.response
+            someData.location = true;
+            session.send(`You entered Location: ${location}`);
+        }
+        // session.beginDialog('getImage');
+    // }, (session) => {
+        var msg = new builder.Message(session)
+            .text("How can I help you today ?<br/>Select your choice.")
+            .suggestedActions(
+            builder.SuggestedActions.create(
+                session, [
+                    builder.CardAction.imBack(session, "Disease Classification", "Get disease classification"),
+                    builder.CardAction.imBack(session, "Weather Data", "Get weather data"),
+                    builder.CardAction.imBack(session, "Cancel", "Cancel")
+                ]
+            ));
+        session.send(msg);
+    }, (session) => {
+        session.endConversation("Bye bye!!");
     }
 ]);
 
 bot.dialog('getName', [
     (session, args, next) => {
-        builder.Prompts.text(session, "what is your name?");
+        if(someData.name) {
+            session.endDialogWithResult({response: session.privateConversationData.name});
+        }else{
+            builder.Prompts.text(session, "What is your name?");
+        }
     },
     (session, results, next) => {
         var name = results.response;
@@ -63,10 +89,15 @@ bot.dialog('getName', [
 ]);
 bot.dialog('getLocation', [
     (session) => {
-        builder.Prompts.text(session, "Please enter your location");
+        if(someData.location){
+            session.endDialogWithResult({response: session.privateConversationData.location})
+        }else{
+            builder.Prompts.text(session, "Please enter your location");
+        }
     },
     (session, results, next) => {
         var location = results.response;
+        // session.sendTyping();
         session.endDialogWithResult({ response: location })
     }
 ]);
@@ -85,8 +116,8 @@ bot.dialog('getImage', [
                 console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
                 cloudinary.uploader.upload('./images/ex.jpg', (result) => {
                     console.log(result)
-                    runClassifier(result.url,session);
-                    session.sendTyping();
+                    runClassifier(result.url, session);
+                    // session.sendTyping();
                     session.endDialog("Please wait");
                 });
             });
@@ -94,6 +125,12 @@ bot.dialog('getImage', [
     }
 
 ])
+    .triggerAction({
+        matches: /^Disease Classification$/i
+    })
+    .cancelAction('cancelAction', 'Ok, cancelling..', {
+        matches: /^cancel$/i
+    });
 
 runClassifier = (url, session) => {
     var options = {
@@ -115,15 +152,28 @@ runClassifier = (url, session) => {
         var js = JSON.parse(body)
         // body.images[0].sort();
         var classes = js.images[0].classifiers[0].classes;
-        classes.sort(); 
+        classes.sort();
         console.log(classes[0]);
-        session.beginDialog('dispResult',classes[0]);
+        session.beginDialog('dispResult', classes[0]);
     });
 }
 
-bot.dialog('dispResult',[
+bot.dialog('dispResult', [
     (session, args) => {
         console.log(args);
-        session.endDialog("The disease is classified as "+ args.class);
+        session.endDialog("The disease is classified as " + args.class);
     }
 ])
+
+bot.dialog('weather',[
+    (session) => {
+        // session.sendTyping();
+        session.endDialog("Weather data might not be availabe now...");
+    }
+]).triggerAction({matches: [/^Weather Data$/i, /weather data/i]})
+
+bot.dialog('cancel',[
+    (session) => {
+        session.endConversation("Bye bye!!");
+    }
+]).triggerAction({matches: /^Cancel$/i})
