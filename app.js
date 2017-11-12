@@ -38,7 +38,7 @@ server.post('/api/messages', connector.listen());
 
 var bot = new builder.UniversalBot(connector, [
     (session) => {
-        session.say("Hi, I'm Agro!! 🤖🌾");
+        session.say("Hi, I'm Agro! 🤖🌾<br />I can help you get weather information and identify & control crop diseases.");
         session.beginDialog('getName');
     }, (session, result, next) => {
         if (result.response) {
@@ -56,11 +56,11 @@ var bot = new builder.UniversalBot(connector, [
         // session.beginDialog('getImage');
     // }, (session) => {
         var msg = new builder.Message(session)
-            .text("How can I help you today ?<br/>Select your choice.")
+            .text("How can I help you today?<br/>Select your choice.")
             .suggestedActions(
             builder.SuggestedActions.create(
                 session, [
-                    builder.CardAction.imBack(session, "Disease Classification", "Get disease classification"),
+                    builder.CardAction.imBack(session, "Disease Classification", "Identify the disease"),
                     builder.CardAction.imBack(session, "Weather Data", "Get weather data"),
                     builder.CardAction.imBack(session, "Cancel", "Cancel")
                 ]
