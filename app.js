@@ -85,7 +85,7 @@ bot.dialog('getImage', [
                 console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
                 cloudinary.uploader.upload('./images/ex.jpg', (result) => {
                     console.log(result)
-                    runClassifier(result.url);
+                    runClassifier(result.url,session);
                     session.sendTyping();
                     session.endDialog("Please wait");
                 });
@@ -95,7 +95,7 @@ bot.dialog('getImage', [
 
 ])
 
-runClassifier = (url) => {
+runClassifier = (url, session) => {
     var options = {
         method: 'GET',
         url: 'https://gateway-a.watsonplatform.net/visual-recognition/api/v3/classify',
@@ -117,6 +117,13 @@ runClassifier = (url) => {
         var classes = js.images[0].classifiers[0].classes;
         classes.sort(); 
         console.log(classes[0]);
-        return (classes[0]);
+        session.beginDialog('dispResult',classes[0]);
     });
 }
+
+bot.dialog('dispResult',[
+    (session, args) => {
+        console.log(args);
+        session.endDialog("The disease is classified as "+ args.class);
+    }
+])
