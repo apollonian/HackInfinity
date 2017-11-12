@@ -52,13 +52,8 @@ var bot = new builder.UniversalBot(connector, [
             someData.name = true;
             session.say(`Hello ${name}`);
         }
-        session.beginDialog('getLocation');
-    }, (session, result, next) => {
-        if (!someData.location) {
-            const location = session.privateConversationData = result.response
-            someData.location = true;
-            session.send(`You entered Location: ${location}`);
-        }
+        // }, (session, result, next) => {
+
         // session.beginDialog('getImage');
         // }, (session) => {
         var msg = new builder.Message(session)
@@ -104,10 +99,32 @@ bot.dialog('getLocation', [
     },
     (session, results, next) => {
         var location = results.response;
+
+        fetch('http://api.openweathermap.org/data/2.5/weather?zip=' + location + ',in&appid=58b6f7c78582bffab3936dac99c31b25')
+            .then(function (response) {
+                if (response.status !== 200) {
+                    session.endDialog("Incorrect ZIP. Try again")
+                    return;
+                }
+
+                // Examine the text in the response
+                response.json().then(function (data) {
+                    if (data.cod == 404) {
+                        session.endDialog("Incorrect ZIP. Try again")
+                        return;
+                    }
+                    let formattedResponse = 'The current temperature in ' + data.name + ' is: ' + (parseInt(data.main["temp"]) - 273.15).toFixed(1) + '°C<br />' +
+                        'Humidity is: ' + data.main["humidity"];
+                    session.send(formattedResponse)
+                });
+            }
+            )
+
         // session.sendTyping();
         session.endDialogWithResult({ response: location })
     }
 ]);
+
 bot.dialog('getImage', [
     (session, response) => {
         session.say("Send a photo of your crop");
@@ -200,7 +217,15 @@ bot.dialog('dispResult', [
 bot.dialog('weather', [
     (session) => {
         // session.sendTyping();
-        session.endDialog("Weather data might not be availabe now...");
+        session.beginDialog('getLocation')
+        // session.endDialog("Weather data might not be availabe now...");
+    }, (session, result, next) => {
+        
+            const location = session.privateConversationData = result.response
+            
+            session.send(`You entered Location: ${location}`);
+        
+        session.endDialog("Have a nice day");
     }
 ]).triggerAction({ matches: [/^Weather Data$/i, /weather data/i] })
 
