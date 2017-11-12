@@ -18,8 +18,16 @@
   },
   "homepage": "https://github.com/apollonian11/HackInfinity#readme",
   "dependencies": {
+    "aws-sdk": "^2.149.0",
     "botbuilder": "^3.11.0",
     "botbuilder-location": "^2.0.0",
-    "restify": "^6.3.2"
+    "cloudinary": "^1.9.1",
+    "firebase": "^4.6.2",
+    "fs": "0.0.1-security",
+    "node-fetch": "^1.7.3",
+    "pngjs": "^3.3.0",
+    "request": "^2.83.0",
+    "restify": "^6.3.2",
+    "watson-developer-cloud": "^2.42.0"
   }
 }
